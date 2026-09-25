@@ -1,0 +1,3285 @@
+# 1 "/mnt/work10_sd/PublicCode/phlegethon/phlegethon/source/source.F90"
+module source
+ use mpi
+ use hdf5
+
+ implicit none
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! TYPES
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+ integer, parameter :: &
+# 14
+
+# 17
+
+
+ integer, parameter :: &
+# 22
+
+# 25
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! MAKEFILE OPTS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+  integer, parameter :: sdims = &
+# 34
+
+  2
+
+
+  integer, parameter :: nx1 = &
+# 41
+
+  1
+
+
+ integer, parameter :: nx2 = &
+# 48
+
+  1
+
+
+ integer, parameter :: nx3 = &
+# 55
+
+  1
+
+
+ integer, parameter :: ddx1 = &
+# 62
+
+  1
+
+
+ integer, parameter :: ddx2 = &
+# 69
+
+  1
+
+
+ integer, parameter :: ddx3 = &
+# 76
+
+  1
+
+
+ integer, parameter :: ngc = &
+# 83
+
+  2
+
+
+ integer, parameter :: nas = &
+# 90
+
+  0
+
+
+# 101
+
+
+# 110
+
+
+# 133
+
+
+ real(kind=rp), parameter :: cfl = &
+# 138
+
+  0.8_rp
+
+
+ real(kind=rp), parameter :: tmax = &
+# 145
+
+  30.0_rp
+
+
+ integer, parameter :: stepmax = &
+# 152
+
+  100000
+
+
+ real(kind=rp), parameter :: wctmax = &
+# 159
+
+  85000.0_rp
+
+
+ real(kind=rp), parameter :: stop_at_temp_max = &
+# 166
+
+  1.0e10_rp
+
+
+ real(kind=rp), parameter :: Mach_cutoff = &
+# 173
+
+  1e-5_rp
+
+
+ real(kind=rp), parameter :: eps_sf = &
+# 180
+
+  0.25_rp
+
+
+ real(kind=rp), parameter :: Mach_ct = &
+# 187
+
+  1e-6_rp
+
+
+# 233
+
+
+# 277
+
+
+ real(kind=rp), parameter :: gs_tol = &
+# 282
+
+  1.0e-4_rp
+
+
+# 321
+
+
+# 358
+
+
+# 367
+
+
+# 376
+
+
+# 385
+
+
+ integer, parameter :: info_terminal_rate = &
+# 390
+
+  100000
+
+
+ real(kind=rp), parameter :: dt_restart = &
+# 397
+
+  100.0_rp
+
+
+ integer, parameter :: compression_factor = &
+# 404
+
+  1
+
+
+# 415
+
+
+# 445
+
+
+# 461
+
+
+# 470
+
+
+ integer, parameter :: nvars = &
+# 475
+
+  sdims+2+nas
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! INDEXES
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+ integer, parameter :: &
+ i_rho = 1, &
+ i_vx1 = 2, &
+ i_vx2 = 3, &
+# 489
+
+ i_vx3 = i_vx2, &
+
+ i_p = i_vx3+1, &
+ i_rhovx1 = i_vx1, &
+ i_rhovx2 = i_vx2, &
+ i_rhovx3 = i_vx3, &
+ i_rhoe = i_p, &
+ i_as1 = 2+sdims+1, &
+ i_asl = nvars, &
+ i_rhoas1 = i_as1, &
+ i_rhoasl = i_asl
+
+ integer, parameter :: &
+ i_ye = i_as1, &
+ i_iabar = i_as1 + 1, &
+ i_rhoye = i_ye, &
+ i_rhoiabar = i_iabar
+ 
+ integer, parameter :: &
+ nvars_eq = 3, &
+ ieq_rho = 1, &
+ ieq_p = 2, &
+ ieq_T = 3
+
+# 518
+
+
+ integer, parameter :: master_rank=0
+ integer, parameter :: filename_size=256
+ integer, parameter :: iunit=21
+ integer, parameter :: idummy=0
+
+# 569
+
+
+# 598
+
+
+# 606
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! PHYSICAL CONSTANTS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ real(kind=rp), parameter :: &
+ CONST_RGAS = 8.31446261815324e7_rp, &
+ CONST_RAD = 7.565767381646406e-15_rp, &
+# 617
+
+ CONST_GRAV = 6.67428e-8_rp, &
+
+ CONST_RSUN = 6.95660e10_rp, &
+ CONST_PI = 3.141592653589793238_rp, &
+ CONST_C = 2.99792458e10_rp, &
+ CONST_C2 = 8.987551787368177e20_rp, &
+ CONST_AV = 6.02214076e23_rp, &
+ CONST_QE = 4.8032042712e-10_rp, &
+ CONST_KB = 1.380650424e-16_rp, & 
+ CONST_NAV_MEV_TO_ERG = 9.648533007578216e+17_rp, &
+ CONST_H = 6.62606896e-27_rp, &
+ CONST_MU = 1.660538782e-24_rp
+
+# 641
+
+
+# 648
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! NUMBERS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ real(kind=rp), parameter :: &
+ rph = 0.5_rp, &
+ rpoh = 1.5_rp, &
+ rpth = 2.5_rp, &
+ rp0 = 0.0_rp, &
+ rp1 = 1.0_rp, & 
+ rp2 = 2.0_rp, & 
+ rp3 = 3.0_rp, & 
+ rp4 = 4.0_rp, & 
+ rp5 = 5.0_rp, & 
+ rp6 = 6.0_rp, & 
+ rp7 = 7.0_rp, & 
+ rp8 = 8.0_rp, & 
+ rp9 = 9.0_rp, & 
+ rp10 = 10.0_rp, & 
+ rp11 = 11.0_rp, &
+ rp12 = 12.0_rp, &
+ rp13 = 13.0_rp, &
+ rp14 = 14.0_rp, &
+ rp15 = 15.0_rp, &
+ rp16 = 16.0_rp, &
+ rp17 = 17.0_rp, &
+ rp18 = 18.0_rp, &
+ rp19 = 19.0_rp, &
+ rp20 = 20.0_rp, &
+ rp21 = 21.0_rp, &
+ rp25 = 25.0_rp, &
+ rp30 = 30.0_rp, &
+ rp32 = 32.0_rp, & 
+ rp36 = 36.0_rp, &
+ rp38 = 38.0_rp, &
+ rp60 = 60.0_rp, &
+ rp91 = 91.0_rp, &
+ rp96 = 96.0_rp, &
+ rp120 = 120.0_rp, &
+ rp180 = 180.0_rp, &
+ rp189 = 189.0_rp, &
+ rp329 = 329.0_rp, &
+ othird = 1.0_rp/3.0_rp, &
+ tthirds = 2.0_rp/3.0_rp, &
+ fthirds = 4.0_rp/3.0_rp, &
+ fvthirds = 5.0_rp/3.0_rp, &
+ oquart = 0.25_rp, &
+ tquarts = 0.75_rp, &
+ osixth = 1.0_rp/6.0_rp, &
+ fvsixth = 5.0_rp/6.0_rp, &
+ fvtwelfth = 5.0_rp/12.0_rp, &
+ o420 = 1.0_rp/420.0_rp, &
+ ep3 = 1.0e3_rp, &
+ ep13 = 1.0e13_rp, &
+ em9 = 1.0e-9_rp, &
+ em11 = 1.0e-11_rp, &
+ em14 = 1.0e-14_rp, &
+ em15 = 1.0e-15_rp
+
+# 739
+
+
+# 746
+
+
+# 755
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! RIEMANN SOLVER UTILS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+ type p_flux
+
+    real(kind=rp), allocatable, dimension(:) :: val
+
+ end type
+
+# 773
+
+
+# 781
+
+
+# 789
+
+
+ type r_utils
+
+   integer :: dir
+
+   real(kind=rp) :: gm,mu
+
+# 799
+
+
+   type(p_flux), dimension(sdims) :: pn
+
+# 809
+
+
+# 813
+
+
+# 817
+
+
+ end type r_utils
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! MPI UTILS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ type mpigrid
+
+    integer, dimension(3) :: i1,i2,coords_dd,bricks
+    logical, dimension(3) :: periodic
+    integer :: comm_cart,wsize,rankl,nx1l,nx2l,nx3l
+    real(kind=rp) :: wctgi    
+    real(kind=rp) :: dummy
+
+ end type mpigrid
+ 
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! LOCAL GRID
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ type locgrid
+    
+    real(kind=rp) :: gm,mu,smax
+   
+    real(kind=rp), allocatable, dimension(:,:,:,:) :: prim
+
+    real(kind=rp), allocatable, dimension(:,:) :: & 
+# 848
+
+    qLx1,qRx1,fx1, &
+    qLx2,qRx2,fx2
+
+    real(kind=rp), allocatable, dimension(:,:,:,:) :: & 
+    state,state0,res,coords,nodes
+
+    real(kind=rp), allocatable, dimension(:,:,:) :: ivol
+
+    real(kind=rp), allocatable, dimension(:,:,:) :: eint,temp
+
+    real(kind=rp), allocatable, dimension(:,:,:,:) :: &
+# 862
+
+    coords_x1, coords_x2
+
+# 870
+
+
+# 877
+
+
+# 883
+
+
+# 892
+
+
+# 905
+
+
+    real(kind=rp) :: x1l,x1u,x2l,x2u,x3l,x3u
+
+    real(kind=rp) :: dx1,dx2,inv_dx1,inv_dx2
+# 912
+
+
+    real(kind=rp) :: dt,time,tnextoutput,tnextrestart
+
+    integer :: step
+
+    type(r_utils) :: ru
+
+# 955
+
+
+# 959
+
+
+# 963
+
+
+# 967
+
+
+# 978
+
+
+# 992
+
+
+# 1059
+
+
+# 1064
+
+
+# 1082
+
+
+# 1088
+
+
+# 1096
+
+
+# 1106
+
+
+# 1111
+
+
+# 1117
+
+
+# 1124
+
+
+# 1128
+
+
+ end type locgrid
+ 
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! HDF5 SPECS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ type h5_file
+
+  character(len=filename_size) :: filename
+  
+  integer(kind=HID_T) :: file_id,pref_dtypef,pref_dtypei
+
+ end type h5_file
+
+contains
+ 
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! INITIALIZE MPI AND ALLOCATION OF GRID QUANTITIES
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ subroutine initialize_simulation(mgrid,lgrid,x1l,x1u,x2l,x2u,x3l,x3u,gamma_ad,mu)
+    type(mpigrid), intent(inout) :: mgrid
+    type(locgrid), intent(inout) :: lgrid
+    real(kind=rp), intent(in) :: x1l,x1u,x2l,x2u,x3l,x3u
+    real(kind=rp), intent(in) :: gamma_ad,mu
+
+    integer :: ierr
+    logical :: isinitialized,reorder
+    integer :: lx1,ux1,lx2,ux2,lx3,ux3 
+
+    mgrid%bricks(1) = ddx1
+    mgrid%bricks(2) = ddx2
+    mgrid%bricks(3) = ddx3
+
+    mgrid%nx1l = int(nx1/ddx1)
+    mgrid%nx2l = int(nx2/ddx2)
+    mgrid%nx3l = int(nx3/ddx3)
+
+# 1170
+
+    mgrid%periodic(1) = .false.
+
+
+# 1176
+
+    mgrid%periodic(2) = .false.
+
+
+# 1182
+
+    mgrid%periodic(3) = .false.
+
+
+    call mpi_initialized(isinitialized, ierr)
+    call mpi_init(ierr)
+
+    reorder = .true.
+
+    call mpi_cart_create(MPI_COMM_WORLD, sdims, mgrid%bricks, mgrid%periodic, reorder, mgrid%comm_cart, ierr)
+    
+    call mpi_comm_rank(mgrid%comm_cart,mgrid%rankl,ierr)
+ 
+    call mpi_comm_size(mgrid%comm_cart,mgrid%wsize,ierr)
+    
+    mgrid%coords_dd(:) = 0
+
+    call mpi_cart_coords(mgrid%comm_cart,mgrid%rankl,sdims,mgrid%coords_dd,ierr)
+    call mpi_barrier(mgrid%comm_cart,ierr)
+    mgrid%wctgi = get_wtime(mgrid)
+
+    mgrid%i1(1) = int(mgrid%coords_dd(1)*mgrid%nx1l+1)
+    mgrid%i2(1) = int((mgrid%coords_dd(1)+1)*mgrid%nx1l)
+
+    mgrid%i1(2) = int(mgrid%coords_dd(2)*mgrid%nx2l+1)
+    mgrid%i2(2) = int((mgrid%coords_dd(2)+1)*mgrid%nx2l)
+
+    mgrid%i1(3) = int(mgrid%coords_dd(3)*mgrid%nx3l+1)
+    mgrid%i2(3) = int((mgrid%coords_dd(3)+1)*mgrid%nx3l)
+
+    lx1 = mgrid%i1(1)
+    ux1 = mgrid%i2(1)
+    lx2 = mgrid%i1(2)
+    ux2 = mgrid%i2(2)
+    lx3 = mgrid%i1(3)
+    ux3 = mgrid%i2(3)
+
+    allocate(lgrid%prim(1:nvars, & 
+    lx1-ngc:ux1+ngc, &
+    lx2-ngc:ux2+ngc, &
+# 1224
+
+# 1227
+
+
+    allocate(lgrid%eint(lx1-ngc:ux1+ngc,lx2-ngc:ux2+ngc, &
+# 1232
+
+# 1235
+
+
+    allocate(lgrid%temp(lx1-ngc:ux1+ngc,lx2-ngc:ux2+ngc, &
+# 1240
+
+# 1243
+
+
+    allocate(lgrid%qLx1(1:nvars,lx1:ux1+1))
+    allocate(lgrid%qRx1(1:nvars,lx1:ux1+1))
+    allocate(lgrid%fx1(1:nvars,lx1:ux1+1))
+
+    allocate(lgrid%qLx2(1:nvars,lx2:ux2+1))
+    allocate(lgrid%qRx2(1:nvars,lx2:ux2+1))
+    allocate(lgrid%fx2(1:nvars,lx2:ux2+1))
+
+# 1257
+
+
+    allocate(lgrid%state(1:nvars,lx1:ux1,lx2:ux2,lx3:ux3))
+
+    allocate(lgrid%state0(1:nvars,lx1:ux1,lx2:ux2,lx3:ux3))
+
+    allocate(lgrid%res(1:nvars,lx1:ux1,lx2:ux2,lx3:ux3))
+    
+    allocate(lgrid%nodes(1:sdims,lx1-ngc:ux1+1+ngc,lx2-ngc:ux2+1+ngc, &
+# 1268
+
+# 1271
+
+
+    allocate(lgrid%ivol(lx1-ngc:ux1+ngc,lx2-ngc:ux2+ngc, &
+# 1276
+
+# 1279
+
+
+    allocate(lgrid%coords(1:sdims,lx1-ngc:ux1+ngc,lx2-ngc:ux2+ngc, &
+# 1284
+
+# 1287
+
+
+    allocate(lgrid%coords_x1(1:sdims,lx1-ngc:ux1+1+ngc,lx2-ngc:ux2+ngc, &
+# 1292
+
+# 1295
+
+
+    allocate(lgrid%coords_x2(1:sdims,lx1-ngc:ux1+ngc,lx2-ngc:ux2+1+ngc, &
+# 1300
+
+# 1303
+
+
+# 1307
+
+
+# 1317
+
+
+# 1326
+
+
+# 1340
+
+
+# 1361
+
+
+# 1413
+
+
+# 1509
+
+
+# 1519
+
+
+# 1537
+
+
+# 1557
+
+
+# 1691
+
+
+# 1704
+
+
+# 1714
+
+
+    lgrid%x1l = x1l
+    lgrid%x1u = x1u
+
+    lgrid%x2l = x2l
+    lgrid%x2u = x2u
+
+    lgrid%x3l = x3l
+    lgrid%x3u = x3u
+
+    lgrid%dx1 = (lgrid%x1u - lgrid%x1l) / real(nx1,kind=rp)
+    lgrid%dx2 = (lgrid%x2u - lgrid%x2l) / real(nx2,kind=rp)
+# 1729
+
+
+    lgrid%inv_dx1 = rp1/lgrid%dx1
+    lgrid%inv_dx2 = rp1/lgrid%dx2
+# 1735
+
+
+# 1749
+
+
+# 1768
+
+
+    call create_geometry(lgrid,mgrid)
+
+    lgrid%time = rp0
+    lgrid%step = 0
+    lgrid%tnextoutput = rp0
+    lgrid%tnextrestart = dt_restart 
+
+    lgrid%gm = gamma_ad
+    lgrid%mu = mu
+
+    lgrid%ru%gm = gamma_ad
+    lgrid%ru%mu = mu
+
+# 1789
+
+
+    allocate(lgrid%ru%pn(1)%val(lx1:ux1+1))
+    allocate(lgrid%ru%pn(2)%val(lx2:ux2+1))
+# 1795
+
+
+# 1804
+
+
+# 1827
+
+
+# 1835
+
+
+# 1839
+
+
+# 1849
+
+
+# 1861
+
+
+# 1866
+
+
+# 1871
+
+
+# 1879
+
+
+    call h5open_f(ierr)
+ 
+ end subroutine initialize_simulation
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! GRID DESTRUCTION
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+ subroutine finalize_simulation(lgrid)
+    type(locgrid), intent(inout) :: lgrid
+
+    integer :: ierr
+
+    call h5close_f(ierr)
+
+    call mpi_finalize(ierr)
+
+    deallocate(lgrid%prim)
+    deallocate(lgrid%eint)
+    deallocate(lgrid%temp)
+
+    deallocate(lgrid%qLx1)
+    deallocate(lgrid%qRx1)
+    deallocate(lgrid%fx1)
+    
+    deallocate(lgrid%qLx2)
+    deallocate(lgrid%qRx2)
+    deallocate(lgrid%fx2)
+
+# 1914
+
+
+    deallocate(lgrid%state)
+    deallocate(lgrid%state0)
+    deallocate(lgrid%res)
+
+# 1922
+
+
+# 1962
+
+
+    deallocate(lgrid%ivol)
+    deallocate(lgrid%coords)
+    deallocate(lgrid%nodes)
+    deallocate(lgrid%coords_x1)
+    deallocate(lgrid%coords_x2)
+# 1971
+
+
+# 1981
+
+
+# 1990
+
+
+# 2004
+
+
+# 2025
+
+
+# 2037
+
+
+# 2046
+
+
+# 2060
+
+
+# 2143
+
+
+# 2159
+
+
+# 2166
+
+
+# 2172
+
+
+    do ierr=1,sdims
+     deallocate(lgrid%ru%pn(ierr)%val)
+    end do
+
+# 2202
+
+
+# 2209
+
+
+# 2215
+
+
+ end subroutine finalize_simulation
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! COMMUNICATION SUBROUTINES
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ subroutine communicate_array(mgrid,lx1,ux1,lx2,ux2,lx3,ux3,gst,vec,communicate_corners)
+    type(mpigrid), intent(in) :: mgrid
+    integer, intent(in) :: lx1,ux1,lx2,ux2,lx3,ux3,gst
+    real(kind=rp), intent(inout) :: vec( &
+    lx1-gst:ux1+gst, &
+    lx2-gst:ux2+gst, &
+# 2231
+
+# 2234
+
+    logical, intent(in) :: communicate_corners
+
+    integer, dimension(3) :: sizes,subsizes,rstarts,sstarts
+    integer :: ghost,is,prev_mpi,next_mpi,prev,next,ierror,itmp
+    integer :: edge,i,j,k,iv
+    integer, dimension(3) :: i1,i2,ri1,ri2,si1,si2
+    integer :: sendtype,recvtype
+
+    if(communicate_corners) then
+      ghost = gst
+    else
+      ghost = 0
+    endif
+
+    do is=1,sdims
+
+     if ((.not.mgrid%periodic(is)).and.(mgrid%bricks(is)==1)) cycle
+
+     call mpi_cart_shift(mgrid%comm_cart,int(is-1),1,prev_mpi,next_mpi,ierror)
+     prev = prev_mpi
+     next = next_mpi
+
+     if ((.not.mgrid%periodic(is)).and.(mgrid%coords_dd(is)==mgrid%bricks(is)-1)) &
+       next = MPI_PROC_NULL
+     if ((.not.mgrid%periodic(is)).and.(mgrid%coords_dd(is)==0)) &
+       prev = MPI_PROC_NULL
+
+     i1(1) = lx1
+     i1(2) = lx2
+     i1(3) = lx3
+
+     i2(1) = ux1
+     i2(2) = ux2
+     i2(3) = ux3
+
+     do iv=1,3
+      si1(iv) = i1(iv)
+      si2(iv) = i2(iv)
+     end do
+
+     do i=1,sdims
+      si1(i) = si1(i) - ghost
+      si2(i) = si2(i) + ghost
+     end do
+
+     do iv=1,3
+      ri1(iv) = si1(iv)
+      ri2(iv) = si2(iv)
+     end do
+
+     si1(is) = i2(is)-gst+1
+     si2(is) = i2(is)
+
+     ri1(is) = i1(is)-gst
+     ri2(is) = i1(is)-1
+
+     do edge=1,2
+
+      if ((mgrid%periodic(is)).and.(mgrid%bricks(is)==1)) then
+
+       do k=si1(3),si2(3)
+        do j=si1(2),si2(2)
+         do i=si1(1),si2(1)
+
+           vec( &
+           i-si1(1)+ri1(1), &
+           j-si1(2)+ri1(2), &
+           k-si1(3)+ri1(3)) = vec(i,j,k)
+
+         end do
+        end do
+       end do
+
+      else
+
+       sizes(:) = ubound(vec)-lbound(vec)+1
+
+       do iv=1,3
+        subsizes(iv) = sizes(iv)
+       end do
+
+       subsizes(1:sdims) = subsizes(1:sdims)-2*(gst-ghost)
+       subsizes(is) = gst
+
+       sstarts(1) = si1(1)-lbound(vec,1)
+       sstarts(2) = si1(2)-lbound(vec,2)
+       sstarts(3) = si1(3)-lbound(vec,3)
+
+       rstarts(1) = ri1(1)-lbound(vec,1)
+       rstarts(2) = ri1(2)-lbound(vec,2)
+       rstarts(3) = ri1(3)-lbound(vec,3)
+
+       call mpi_type_create_subarray(3,sizes,subsizes,sstarts,&
+       MPI_ORDER_FORTRAN,MPI_RP,sendtype,ierror)
+       call mpi_type_create_subarray(3,sizes,subsizes,rstarts,&
+       MPI_ORDER_FORTRAN,MPI_RP,recvtype,ierror)
+
+       call mpi_type_commit(sendtype,ierror)
+       call mpi_type_commit(recvtype,ierror)
+
+       call mpi_sendrecv( &
+       vec,1,sendtype,next,0, &
+       vec,1,recvtype,prev,0, &
+       mgrid%comm_cart,MPI_STATUS_IGNORE,ierror)
+
+       call mpi_type_free(sendtype,ierror)
+       call mpi_type_free(recvtype,ierror)
+
+      endif
+
+      si1(is) = i1(is)
+      si2(is) = i1(is)+gst-1
+
+      ri1(is) = i2(is)+1
+      ri2(is) = i2(is)+gst
+
+      itmp = next
+      next = prev
+      prev = itmp
+
+     end do
+
+    end do
+
+ end subroutine communicate_array
+
+ subroutine communicate_ndarray(mgrid,nv,lx1,ux1,lx2,ux2,lx3,ux3,gst,vec,communicate_corners)
+    type(mpigrid), intent(in) :: mgrid
+    integer, intent(in) :: nv,lx1,ux1,lx2,ux2,lx3,ux3,gst
+    real(kind=rp), intent(inout) :: vec(1:nv, &
+    lx1-gst:ux1+gst, &
+    lx2-gst:ux2+gst, &
+# 2369
+
+# 2372
+
+    logical, intent(in) :: communicate_corners
+
+    integer, dimension(4) :: sizes,subsizes,rstarts,sstarts
+    integer :: ghost,is,prev_mpi,next_mpi,prev,next,ierror,itmp
+    integer :: edge,iv,i,j,k
+    integer, dimension(3) :: i1,i2,ri1,ri2,si1,si2
+    integer :: sendtype,recvtype
+
+    if(communicate_corners) then
+      ghost = gst
+    else
+      ghost = 0
+    endif
+
+    do is=1,sdims
+
+     if ((.not.mgrid%periodic(is)).and.(mgrid%bricks(is)==1)) cycle
+
+     call mpi_cart_shift(mgrid%comm_cart,int(is-1),1,prev_mpi,next_mpi,ierror)
+     prev = prev_mpi
+     next = next_mpi
+
+     if ((.not.mgrid%periodic(is)).and.(mgrid%coords_dd(is)==mgrid%bricks(is)-1)) &
+       next = MPI_PROC_NULL
+     if ((.not.mgrid%periodic(is)).and.(mgrid%coords_dd(is)==0)) &
+       prev = MPI_PROC_NULL
+
+     i1(1) = lx1
+     i1(2) = lx2
+     i1(3) = lx3
+
+     i2(1) = ux1
+     i2(2) = ux2
+     i2(3) = ux3
+
+     do iv=1,3
+      si1(iv) = i1(iv)
+      si2(iv) = i2(iv)
+     end do
+
+     do i=1,sdims
+      si1(i) = si1(i) - ghost
+      si2(i) = si2(i) + ghost
+     end do
+
+     do iv=1,3
+      ri1(iv) = si1(iv)
+      ri2(iv) = si2(iv)
+     end do
+
+     si1(is) = i2(is)-gst+1
+     si2(is) = i2(is)
+
+     ri1(is) = i1(is)-gst
+     ri2(is) = i1(is)-1
+
+     do edge=1,2
+
+      if ((mgrid%periodic(is)).and.(mgrid%bricks(is)==1)) then
+
+       do k=si1(3),si2(3)
+        do j=si1(2),si2(2)
+         do i=si1(1),si2(1)
+
+          do iv=1,nv
+           vec(iv, &
+           i-si1(1)+ri1(1), &
+           j-si1(2)+ri1(2), &
+           k-si1(3)+ri1(3)) = vec(iv,i,j,k)
+          end do
+
+         end do
+        end do
+       end do
+
+      else
+
+       sizes(:) = ubound(vec)-lbound(vec)+1
+
+       do iv=1,4
+        subsizes(iv) = sizes(iv)
+       end do
+
+       subsizes(2:sdims+1) = subsizes(2:sdims+1)-2*(gst-ghost)
+       subsizes(is+1) = gst
+
+       sstarts(1) = 0
+       sstarts(2) = si1(1)-lbound(vec,2)
+       sstarts(3) = si1(2)-lbound(vec,3)
+       sstarts(4) = si1(3)-lbound(vec,4)
+
+       rstarts(1) = 0
+       rstarts(2) = ri1(1)-lbound(vec,2)
+       rstarts(3) = ri1(2)-lbound(vec,3)
+       rstarts(4) = ri1(3)-lbound(vec,4)
+
+       call mpi_type_create_subarray(4,sizes,subsizes,sstarts,&
+       MPI_ORDER_FORTRAN,MPI_RP,sendtype,ierror)
+       call mpi_type_create_subarray(4,sizes,subsizes,rstarts,&
+       MPI_ORDER_FORTRAN,MPI_RP,recvtype,ierror)
+
+       call mpi_type_commit(sendtype,ierror)
+       call mpi_type_commit(recvtype,ierror)
+
+       call mpi_sendrecv( &
+       vec,1,sendtype,next,0, &
+       vec,1,recvtype,prev,0, &
+       mgrid%comm_cart,MPI_STATUS_IGNORE,ierror)
+
+       call mpi_type_free(sendtype,ierror)
+       call mpi_type_free(recvtype,ierror)
+
+      endif
+
+      si1(is) = i1(is)
+      si2(is) = i1(is)+gst-1
+
+      ri1(is) = i2(is)+1
+      ri2(is) = i2(is)+gst
+
+      itmp = next
+      next = prev
+      prev = itmp
+
+     end do
+
+    end do
+
+ end subroutine communicate_ndarray
+ 
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! I/O
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ subroutine write_restart(mgrid,lgrid)
+    type(mpigrid), intent(in) :: mgrid
+    type(locgrid), intent(inout) :: lgrid
+
+    type(h5_file) :: h5
+
+    integer :: error
+    integer(HID_T) :: id,plist_id
+    
+    write(h5%filename, "('./restarts/restart_n',I0.5,'.h5')") lgrid%step
+
+    call h5pcreate_f(H5P_FILE_ACCESS_F,plist_id,error)
+
+    call h5pset_fapl_mpio_f(plist_id,mgrid%comm_cart,MPI_INFO_NULL,error)
+
+    call h5fcreate_f(h5%filename,H5F_ACC_TRUNC_F,h5%file_id,error,H5P_DEFAULT_F,plist_id)
+  
+    call h5pclose_f(plist_id,error)
+
+# 2533
+
+
+# 2542
+
+
+# 2546
+
+# 2549
+
+
+    call h5gcreate_f(h5%file_id,"grid",id,error)
+    call hdf5_annotate_rp(h5,id,"time",lgrid%time)
+    call hdf5_annotate_rp(h5,id,"dt",lgrid%dt)
+    call hdf5_annotate_rp(h5,id,"smax",lgrid%smax)
+    call hdf5_annotate_ip(h5,id,"step",lgrid%step)
+
+# 2559
+
+
+# 2563
+
+
+# 2568
+
+
+# 2573
+
+
+# 2578
+
+
+    call hdf5_write_ndarray(h5,id,"prim",mgrid,nvars,&
+    mgrid%i1(1),mgrid%i2(1),mgrid%i1(2),mgrid%i2(2),mgrid%i1(3),mgrid%i2(3),ngc,lgrid%ivol,lgrid%prim,1)
+
+# 2594
+
+
+# 2608
+
+
+    call hdf5_write_array(h5,id,"temp",mgrid,&
+    mgrid%i1(1),mgrid%i2(1),mgrid%i1(2),mgrid%i2(2),mgrid%i1(3),mgrid%i2(3),ngc,lgrid%ivol,lgrid%temp,1)
+
+    call h5gclose_f(id, error)
+    call h5fclose_f(h5%file_id, error)
+
+ end subroutine write_restart
+
+ subroutine read_ip(h5,group_id,dsetname,var)
+    type(h5_file),intent(in) :: h5
+    integer(kind=HID_T), intent(in) :: group_id
+    character(len=*), intent(in) :: dsetname
+    integer, intent(inout) :: var
+
+    integer(kind=HSIZE_T),dimension(1) :: dims
+    integer :: error
+    integer(HID_T) :: dataset_id
+
+    call h5dopen_f(group_id,dsetname,dataset_id,error)
+
+    call h5dread_f(dataset_id,h5%pref_dtypei,var,dims,error)
+
+    call h5dclose_f(dataset_id,error)
+
+ end subroutine read_ip
+   
+ subroutine read_rp(h5,group_id,dsetname,var)
+    type(h5_file),intent(in) :: h5
+    integer(kind=HID_T), intent(in) :: group_id
+    character(len=*), intent(in) :: dsetname
+    real(kind=rp), intent(inout) :: var
+
+    integer(kind=HSIZE_T),dimension(1) :: dims
+    integer :: error
+    integer(HID_T) :: dataset_id
+
+    call h5dopen_f(group_id,dsetname,dataset_id,error) 
+ 
+    call h5dread_f(dataset_id,h5%pref_dtypef,var,dims,error)
+
+    call h5dclose_f(dataset_id,error)
+
+ end subroutine read_rp
+
+ subroutine read_array(h5,group_id,dsetname,mgrid,lx1,ux1,lx2,ux2,lx3,ux3,ghost,vec)
+    type(h5_file),intent(in) :: h5
+    integer(kind=HID_T), intent(in) :: group_id
+    character(len=*), intent(in) :: dsetname
+    type(mpigrid), intent(in) :: mgrid
+    integer, intent(in) :: lx1,ux1,lx2,ux2,lx3,ux3,ghost
+    real(kind=rp), dimension( &
+    lx1-ghost:ux1+ghost, &
+    lx2-ghost:ux2+ghost, &
+# 2665
+
+# 2668
+
+
+    integer :: error
+    integer(HID_T) :: dataset_id,dataspace_id,memspace_id
+    
+    integer(HID_T) :: start(3),cnt(3),dims(3)
+
+    call h5dopen_f(group_id,dsetname,dataset_id,error) 
+
+    call h5dget_space_f(dataset_id,dataspace_id,error)
+
+    dims(1) = ux1-lx1+1
+    dims(2) = ux2-lx2+1
+    dims(3) = ux3-lx3+1
+
+    cnt(1) = ux1-lx1+1
+    cnt(2) = ux2-lx2+1
+    cnt(3) = ux3-lx3+1
+
+    start(1) = cnt(1)*mgrid%coords_dd(1)
+    start(2) = cnt(2)*mgrid%coords_dd(2)
+    start(3) = cnt(3)*mgrid%coords_dd(3)
+
+    call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,start,cnt,error)
+
+    call h5screate_simple_f(3,dims,memspace_id,error)
+
+    call h5dread_f(dataset_id,h5%pref_dtypef, &
+    vec( &
+    lx1:ux1, &
+    lx2:ux2, &
+    lx3:ux3), &
+    dims,error,memspace_id,dataspace_id)
+
+    call h5dclose_f(dataset_id, error)
+
+ end subroutine read_array
+
+ subroutine read_ndarray(h5,group_id,dsetname,mgrid,nv,lx1,ux1,lx2,ux2,lx3,ux3,ghost,vec)
+    type(h5_file),intent(in) :: h5
+    integer(kind=HID_T), intent(in) :: group_id
+    character(len=*), intent(in) :: dsetname
+    type(mpigrid), intent(in) :: mgrid
+    integer, intent(in) :: nv,lx1,ux1,lx2,ux2,lx3,ux3,ghost
+    real(kind=rp), dimension(1:nv, &
+    lx1-ghost:ux1+ghost, &
+    lx2-ghost:ux2+ghost, &
+# 2717
+
+# 2720
+
+
+    integer :: error
+    integer(HID_T) :: dataset_id,dataspace_id,memspace_id
+    
+    integer(HID_T) :: start(4),cnt(4),dims(4)
+
+    call h5dopen_f(group_id,dsetname,dataset_id,error) 
+
+    call h5dget_space_f(dataset_id,dataspace_id,error)
+
+    dims(1) = nv
+    dims(2) = ux1-lx1+1
+    dims(3) = ux2-lx2+1
+    dims(4) = ux3-lx3+1
+
+    cnt(1) = nv
+    cnt(2) = ux1-lx1+1
+    cnt(3) = ux2-lx2+1
+    cnt(4) = ux3-lx3+1
+
+    start(1) = 0
+    start(2) = cnt(2)*mgrid%coords_dd(1)
+    start(3) = cnt(3)*mgrid%coords_dd(2)
+    start(4) = cnt(4)*mgrid%coords_dd(3)
+
+    call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,start,cnt,error)
+
+    call h5screate_simple_f(4,dims,memspace_id,error)
+
+    call h5dread_f(dataset_id,h5%pref_dtypef, &
+    vec(1:nv, &
+    lx1:ux1, &
+    lx2:ux2, &
+    lx3:ux3), &
+    dims,error,memspace_id,dataspace_id)
+
+    call h5dclose_f(dataset_id,error)
+
+ end subroutine read_ndarray
+
+ subroutine read_restart(mgrid,lgrid)
+    type(mpigrid), intent(in) :: mgrid
+    type(locgrid), intent(inout) :: lgrid
+
+    type(h5_file) :: h5
+
+    integer :: error
+    integer(HID_T) :: file_id,group_id
+    
+    write(h5%filename, "('./restarts/restart_n',I0.5,'.h5')") lgrid%step
+
+# 2779
+
+
+# 2788
+
+
+# 2792
+
+# 2795
+
+
+    call h5fopen_f(h5%filename,H5F_ACC_RDONLY_F,file_id,error)
+
+    call h5gopen_f(file_id,"grid",group_id,error)
+
+    call  read_ndarray(h5,group_id,'prim',mgrid,nvars,&
+    mgrid%i1(1),mgrid%i2(1),&
+    mgrid%i1(2),mgrid%i2(2),&
+    mgrid%i1(3),mgrid%i2(3),&
+    ngc,lgrid%prim)
+
+# 2829
+
+
+# 2856
+
+
+    call  read_array(h5,group_id,"temp",mgrid,&
+    mgrid%i1(1),mgrid%i2(1),&
+    mgrid%i1(2),mgrid%i2(2),&
+    mgrid%i1(3),mgrid%i2(3),&
+    ngc,lgrid%temp)
+
+    call read_rp(h5,group_id,"time",lgrid%time)
+
+    call read_rp(h5,group_id,"dt",lgrid%dt)
+
+    call read_rp(h5,group_id,"smax",lgrid%smax)
+
+# 2872
+
+
+# 2876
+
+
+# 2881
+
+
+# 2886
+
+
+# 2891
+
+
+    call h5gclose_f(group_id,error)
+
+    call h5fclose_f(file_id,error)
+
+ end subroutine read_restart 
+ 
+ subroutine write_output(mgrid,lgrid)
+    type(mpigrid), intent(in) :: mgrid
+    type(locgrid), intent(inout) :: lgrid
+
+    type(h5_file) :: h5
+
+    integer :: error,i,j,k
+    integer(HID_T) :: id,plist_id
+
+    real(kind=rp), allocatable, dimension(:,:,:) :: vol
+
+    write(h5%filename, "('./grids/grid_n',I0.5,'.h5')") lgrid%step
+
+    call h5pcreate_f(H5P_FILE_ACCESS_F,plist_id,error)
+
+    call h5pset_fapl_mpio_f(plist_id,mgrid%comm_cart,MPI_INFO_NULL,error)
+
+    call h5fcreate_f(h5%filename,H5F_ACC_TRUNC_F,h5%file_id,error,H5P_DEFAULT_F,plist_id)
+  
+    call h5pclose_f(plist_id,error)
+
+# 2927
+
+
+# 2936
+
+
+# 2940
+
+# 2943
+
+
+    call h5gcreate_f(h5%file_id,"grid", id, error)
+    call hdf5_annotate_rp(h5,id,"time",lgrid%time)
+    call hdf5_annotate_rp(h5,id,"dt",lgrid%dt)
+    call hdf5_annotate_ip(h5,id,"step",lgrid%step)
+
+    if(lgrid%step==0) then
+ 
+      allocate(vol(mgrid%i1(1):mgrid%i2(1),mgrid%i1(2):mgrid%i2(2),mgrid%i1(3):mgrid%i2(3)))
+
+      do k=mgrid%i1(3),mgrid%i2(3)
+       do j=mgrid%i1(2),mgrid%i2(2)
+        do i=mgrid%i1(1),mgrid%i2(1)
+         vol(i,j,k) = rp1/lgrid%ivol(i,j,k)
+        end do
+       end do
+      end do
+
+      call hdf5_annotate_rp(h5,id,"gamma_ad",lgrid%gm)
+      call hdf5_annotate_rp(h5,id,"mu",lgrid%mu)
+      call hdf5_annotate_rp(h5,id,"x1l",lgrid%x1l)
+      call hdf5_annotate_rp(h5,id,"x1u",lgrid%x1u)
+      call hdf5_annotate_rp(h5,id,"x2l",lgrid%x2l)
+      call hdf5_annotate_rp(h5,id,"x2u",lgrid%x2u)
+      call hdf5_annotate_rp(h5,id,"x3l",lgrid%x3l)
+      call hdf5_annotate_rp(h5,id,"x3u",lgrid%x3u)
+      call hdf5_annotate_ip(h5,id,"sdims",sdims)
+      call hdf5_annotate_ip(h5,id,"nx1",nx1)
+      call hdf5_annotate_ip(h5,id,"nx2",nx2)
+      call hdf5_annotate_ip(h5,id,"nx3",nx3)
+
+# 2977
+
+      call hdf5_annotate_string(id,"advect_yeiabar","false")
+
+
+# 2983
+
+      call hdf5_annotate_string(id,"advect_species","false")
+
+
+# 2989
+
+      call hdf5_annotate_string(id,"use_prad","false")
+
+
+# 3000
+
+      call hdf5_annotate_string(id,"use_helmholtz","false")
+
+
+# 3006
+
+      call hdf5_annotate_string(id,"use_pig","false")
+
+
+# 3012
+
+      call hdf5_annotate_string(id,"use_gravity_solver","false")
+
+
+# 3018
+
+      call hdf5_annotate_string(id,"use_monopole_solver","false")
+
+
+# 3024
+
+
+# 3028
+
+
+# 3032
+
+
+# 3036
+
+
+# 3040
+
+
+# 3044
+
+
+# 3048
+
+# 3051
+
+      call hdf5_annotate_string(id,"use_internal_boundaries","false")
+
+
+
+# 3059
+
+
+      call hdf5_write_ndarray(h5,id,"coords",mgrid,sdims, &
+      mgrid%i1(1),mgrid%i2(1),mgrid%i1(2),mgrid%i2(2),mgrid%i1(3),mgrid%i2(3),ngc,lgrid%ivol,lgrid%coords,0)
+
+# 3066
+
+      call hdf5_annotate_string(id,"update_kappa","false")
+
+
+# 3075
+
+
+# 3081
+
+
+# 3085
+
+
+
+
+# 3096
+
+
+
+
+# 3103
+
+
+# 3107
+
+
+      call hdf5_write_array(h5,id,"vol",mgrid, &
+      mgrid%i1(1),mgrid%i2(1),mgrid%i1(2),mgrid%i2(2),mgrid%i1(3),mgrid%i2(3),0,lgrid%ivol,vol,0)
+     
+      deallocate(vol)
+
+    endif
+
+    call hdf5_write_ndarray(h5,id,"prim",mgrid,nvars, &
+    mgrid%i1(1),mgrid%i2(1),mgrid%i1(2),mgrid%i2(2),mgrid%i1(3),mgrid%i2(3),ngc,lgrid%ivol,lgrid%prim,0)
+
+    call hdf5_write_array(h5,id,"temp",mgrid, &
+    mgrid%i1(1),mgrid%i2(1),mgrid%i1(2),mgrid%i2(2),mgrid%i1(3),mgrid%i2(3),ngc,lgrid%ivol,lgrid%temp,0)
+
+# 3125
+
+
+# 3133
+
+
+# 3138
+
+
+# 3143
+
+
+# 3164
+
+
+    call h5gclose_f(id,error)
+    call h5fclose_f(h5%file_id,error)
+
+ end subroutine write_output
+
+# 3461
+
+
+# 4268
+
+
+# 5098
+
+
+ subroutine hdf5_write_array(h5,group_id,dsetname,mgrid,lx1,ux1,lx2,ux2,lx3,ux3,ghost,ivol,vec,is_restart)
+    type(h5_file) :: h5
+    integer(kind=HID_T), intent(in) :: group_id
+    character(len=*) :: dsetname
+    type(mpigrid), intent(in) :: mgrid
+    integer, intent(in) :: lx1,ux1,lx2,ux2,lx3,ux3,ghost
+    real(kind=rp), intent(in), dimension(lx1-ngc:ux1+ngc,lx2-ngc:ux2+ngc, &
+# 5109
+
+# 5112
+
+    real(kind=rp), dimension( &
+    lx1-ghost:ux1+ghost, &
+    lx2-ghost:ux2+ghost, &
+# 5118
+
+# 5121
+
+    integer, intent(in) :: is_restart
+
+    integer(kind=HID_T) :: dset_id,filespace,memspace,plist_id
+    integer(kind=HSIZE_T), dimension(3) :: gnc,cnt,off
+    integer(kind=HSIZE_T), dimension(3) :: memcnt,memcnt2,memoff
+    integer :: err
+
+    integer :: nx1l,nx2l,nx3l
+
+    real(kind=rp), allocatable :: vec_aux(:,:,:)
+    real(kind=rp) :: v1,v2,ivol_sum
+    integer :: i,j,k,ii,jj,kk,ia,ja,ka
+    integer, dimension(3) :: i1r,i2r
+
+    v1 = ivol(lx1,lx2,lx3)
+
+    nx1l = ux1-lx1+1
+    nx2l = ux2-lx2+1
+    nx3l = ux3-lx3+1
+
+    if(is_restart==0) then
+      nx1l = int(nx1l/compression_factor)
+      nx2l = int(nx2l/compression_factor)
+      nx3l = int(nx3l/compression_factor)
+    endif
+
+    gnc(1) = nx1l*mgrid%bricks(1)
+    gnc(2) = nx2l*mgrid%bricks(2)
+    gnc(3) = nx3l*mgrid%bricks(3)
+
+    call h5screate_simple_f(3,gnc,filespace,err)
+
+    call h5dcreate_f(group_id,dsetname,h5%pref_dtypef,filespace,dset_id,err)
+
+    call h5sclose_f(filespace,err)
+
+    memcnt(1) = nx1l + 2*ghost
+    memcnt(2) = nx2l + 2*ghost
+    memcnt(3) = nx3l
+# 5163
+
+
+    call h5screate_simple_f(3,memcnt,memspace,err)
+
+    memcnt2(1) = nx1l
+    memcnt2(2) = nx2l
+    memcnt2(3) = nx3l
+
+    memoff(1) = ghost
+    memoff(2) = ghost
+# 5175
+
+# 5178
+
+
+    call h5sselect_hyperslab_f(memspace,H5S_SELECT_SET_F,memoff,memcnt2,err)
+    
+    cnt(1) = nx1l 
+    cnt(2) = nx2l
+    cnt(3) = nx3l
+
+    off(1) = nx1l*mgrid%coords_dd(1)
+    off(2) = nx2l*mgrid%coords_dd(2)
+    off(3) = nx3l*mgrid%coords_dd(3)
+
+    if(compression_factor>1 .and. is_restart==0) then 
+
+      i1r(1) = int(mgrid%coords_dd(1)*nx1l+1)
+      i2r(1) = int((mgrid%coords_dd(1)+1)*nx1l)
+ 
+      i1r(2) = int(mgrid%coords_dd(2)*nx2l+1)
+      i2r(2) = int((mgrid%coords_dd(2)+1)*nx2l)
+
+      i1r(3) = int(mgrid%coords_dd(3)*nx3l+1)
+      i2r(3) = int((mgrid%coords_dd(3)+1)*nx3l)
+
+      allocate(vec_aux(i1r(1)-ghost:i2r(1)+ghost,i1r(2)-ghost:i2r(2)+ghost,i1r(3)-ghost:i2r(3)+ghost))
+
+      do k=i1r(3),i2r(3)
+       do j=i1r(2),i2r(2)
+        do i=i1r(1),i2r(1)
+ 
+         ia = compression_factor*i-(compression_factor-1)
+         ja = compression_factor*j-(compression_factor-1)
+         ka = compression_factor*k-(compression_factor-1)
+
+         ivol_sum = rp0
+         v2 = rp0
+
+         do kk=0,compression_factor-1
+          do jj=0,compression_factor-1
+           do ii=0,compression_factor-1
+
+# 5220
+
+            v1 = rp1
+
+            ivol_sum = ivol_sum + v1
+            v2 = v2 + vec(ia+ii,ja+jj,ka+kk)*v1
+
+           end do
+          end do
+         end do
+
+         ivol_sum = rp1/ivol_sum
+         vec_aux(i,j,k) = v2*ivol_sum
+                  
+        end do
+       end do 
+      end do
+
+    end if
+
+    call h5dget_space_f(dset_id, filespace, err)
+    call h5sselect_hyperslab_f(filespace,H5S_SELECT_SET_F,off,cnt,err)
+
+    call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,err)
+    call h5pset_dxpl_mpio_f(plist_id,H5FD_MPIO_COLLECTIVE_F,err)
+  
+    if(compression_factor>1 .and. is_restart==0) then
+
+      call h5dwrite_f(dset_id,h5%pref_dtypef, &
+      vec_aux( &
+      lbound(vec_aux,1), &
+      lbound(vec_aux,2), &
+      lbound(vec_aux,3) ), &
+      gnc,err,memspace,filespace,plist_id)
+
+      deallocate(vec_aux)
+    
+    else
+
+      call h5dwrite_f(dset_id,h5%pref_dtypef, &
+      vec( &
+      lbound(vec,1), &
+      lbound(vec,2), &
+      lbound(vec,3) ), &
+      gnc,err,memspace,filespace,plist_id)
+
+    endif
+
+    call h5sclose_f(filespace,err)
+    call h5sclose_f(memspace,err)
+    call h5dclose_f(dset_id,err)
+    call h5pclose_f(plist_id,err)
+
+ end subroutine hdf5_write_array
+
+ subroutine hdf5_write_ndarray(h5,group_id,dsetname,mgrid,nv,lx1,ux1,lx2,ux2,lx3,ux3,ghost,ivol,vec,is_restart)
+    type(h5_file) :: h5
+    integer(kind=HID_T), intent(in) :: group_id
+    character(len=*) :: dsetname
+    type(mpigrid), intent(in) :: mgrid
+    integer, intent(in) :: nv
+    integer, intent(in) :: lx1,ux1,lx2,ux2,lx3,ux3,ghost
+    real(kind=rp), intent(in), dimension(lx1-ngc:ux1+ngc,lx2-ngc:ux2+ngc, &
+# 5284
+
+# 5287
+
+    real(kind=rp), dimension(1:nv, &
+    lx1-ghost:ux1+ghost, &
+    lx2-ghost:ux2+ghost, &
+# 5293
+
+# 5296
+
+    integer, intent(in) :: is_restart
+
+    integer(kind=HID_T) :: dset_id,filespace,memspace,plist_id
+    integer(kind=HSIZE_T), dimension(4) :: gnc,cnt,off
+    integer(kind=HSIZE_T), dimension(4) :: memcnt,memcnt2,memoff
+    integer :: err
+
+    integer :: nx1l,nx2l,nx3l
+
+    integer, dimension(3) :: i1r,i2r
+    integer :: iv,i,j,k,ia,ja,ka,ii,jj,kk
+    real(kind=rp) :: v1,v2(1:nv),ivol_sum
+    real(kind=rp), allocatable :: vec_aux(:,:,:,:)
+
+    v1 = ivol(lx1,lx2,lx3)
+
+    nx1l = ux1-lx1+1
+    nx2l = ux2-lx2+1
+    nx3l = ux3-lx3+1
+
+    if(is_restart==0) then
+     nx1l = int(nx1l/compression_factor)
+     nx2l = int(nx2l/compression_factor)
+     nx3l = int(nx3l/compression_factor)
+    endif
+
+    gnc(1) = nv
+    gnc(2) = nx1l*mgrid%bricks(1)
+    gnc(3) = nx2l*mgrid%bricks(2)
+    gnc(4) = nx3l*mgrid%bricks(3)
+
+    call h5screate_simple_f(4,gnc,filespace,err)
+
+    call h5dcreate_f(group_id,dsetname,h5%pref_dtypef,filespace,dset_id,err)
+
+    call h5sclose_f(filespace,err)
+
+    memcnt(1) = nv
+    memcnt(2) = nx1l + 2*ghost
+    memcnt(3) = nx2l + 2*ghost
+    memcnt(4) = nx3l
+# 5340
+
+
+    call h5screate_simple_f(4,memcnt,memspace,err)
+
+    memcnt2(1) = nv
+    memcnt2(2) = nx1l
+    memcnt2(3) = nx2l
+    memcnt2(4) = nx3l
+
+    memoff(1) = 0
+    memoff(2) = ghost
+    memoff(3) = ghost
+# 5354
+
+# 5357
+
+
+    call h5sselect_hyperslab_f(memspace,H5S_SELECT_SET_F,memoff,memcnt2,err)
+    
+    cnt(1) = nv
+    cnt(2) = nx1l 
+    cnt(3) = nx2l
+    cnt(4) = nx3l
+
+    off(1) = 0
+    off(2) = nx1l*mgrid%coords_dd(1)
+    off(3) = nx2l*mgrid%coords_dd(2)
+    off(4) = nx3l*mgrid%coords_dd(3)
+   
+    if(compression_factor>1 .and. is_restart==0) then
+
+     i1r(1) = int(mgrid%coords_dd(1)*nx1l+1)
+     i2r(1) = int((mgrid%coords_dd(1)+1)*nx1l)
+
+     i1r(2) = int(mgrid%coords_dd(2)*nx2l+1)
+     i2r(2) = int((mgrid%coords_dd(2)+1)*nx2l)
+
+     i1r(3) = int(mgrid%coords_dd(3)*nx3l+1)
+     i2r(3) = int((mgrid%coords_dd(3)+1)*nx3l)
+
+     allocate(vec_aux(1:nv,i1r(1)-ghost:i2r(1)+ghost,i1r(2)-ghost:i2r(2)+ghost,i1r(3)-ghost:i2r(3)+ghost))
+
+     do k=i1r(3),i2r(3)
+      do j=i1r(2),i2r(2)
+       do i=i1r(1),i2r(1)
+
+        ia = compression_factor*i-(compression_factor-1)
+        ja = compression_factor*j-(compression_factor-1)
+        ka = compression_factor*k-(compression_factor-1)
+
+        ivol_sum = rp0
+        do iv=1,nv
+         v2(iv) = rp0
+        end do
+
+        do kk=0,compression_factor-1
+         do jj=0,compression_factor-1
+          do ii=0,compression_factor-1
+
+# 5403
+
+            v1 = rp1
+
+            ivol_sum = ivol_sum + v1
+
+            do iv=1,nv
+             v2(iv) = v2(iv) + vec(iv,ia+ii,ja+jj,ka+kk)*v1
+            end do
+
+          end do
+         end do
+        end do
+       
+        ivol_sum = rp1/ivol_sum
+
+        do iv=1,nv
+         vec_aux(iv,i,j,k) = v2(iv)*ivol_sum
+        end do
+
+       end do
+      end do
+     end do
+
+    endif
+
+    call h5dget_space_f(dset_id,filespace,err)
+    call h5sselect_hyperslab_f(filespace,H5S_SELECT_SET_F,off,cnt,err)
+
+    call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,err)
+    call h5pset_dxpl_mpio_f(plist_id,H5FD_MPIO_COLLECTIVE_F,err)
+
+    if(compression_factor>1 .and. is_restart==0) then
+
+      call h5dwrite_f(dset_id,h5%pref_dtypef, &
+      vec_aux(1, &
+      lbound(vec_aux,2), &
+      lbound(vec_aux,3), &
+      lbound(vec_aux,4) ), &
+      gnc,err,memspace,filespace,plist_id)
+
+      deallocate(vec_aux)
+
+    else
+
+      call h5dwrite_f(dset_id,h5%pref_dtypef, &
+      vec(1, &
+      lbound(vec,2), &
+      lbound(vec,3), &
+      lbound(vec,4) ), &
+      gnc,err,memspace,filespace,plist_id)
+     
+    endif
+
+    call h5sclose_f(filespace,err)
+    call h5sclose_f(memspace,err)
+    call h5dclose_f(dset_id,err)
+    call h5pclose_f(plist_id,err)
+
+ end subroutine hdf5_write_ndarray
+
+# 5569
+
+
+ subroutine hdf5_annotate_rp(h5,id,key,val)
+    type(h5_file) :: h5
+    integer(kind=HID_T), intent(in) :: id
+    character(len=*), intent(in) :: key
+    real(kind=rp), intent(in) :: val
+
+    integer(kind=HSIZE_T),dimension(1) :: dims
+    integer :: err
+    integer(kind=HID_T) :: sid,aid
+
+    call h5screate_f(H5S_SCALAR_F,sid,err)
+    call h5dcreate_f(id,key,h5%pref_dtypef,sid,aid,err)
+    call h5dwrite_f(aid,h5%pref_dtypef,val,dims,err)
+    call h5dclose_f(aid,err)
+    call h5sclose_f(sid,err)
+
+ end subroutine hdf5_annotate_rp
+
+ subroutine hdf5_annotate_array_rp(h5,id,key,val)
+      type(h5_file) :: h5
+      integer(kind=HID_T), intent(in) :: id
+      character(len=*), intent(in) :: key
+      real(kind=rp), dimension(:), intent(in) :: val
+
+      integer(kind=HSIZE_T),dimension(1) :: dims
+      integer :: err
+      integer(kind=HID_T) :: sid,aid
+
+      dims(1) = size(val)
+      call h5screate_simple_f(1,dims,sid,err)
+      call h5dcreate_f(id,key,h5%pref_dtypef,sid,aid,err)
+      call h5dwrite_f(aid,h5%pref_dtypef,val,dims,err)
+      call h5dclose_f(aid,err)
+      call h5sclose_f(sid,err)
+
+ end subroutine hdf5_annotate_array_rp
+
+ subroutine hdf5_annotate_array_ip(h5,id,key,val)
+   type(h5_file) :: h5
+   integer(kind=HID_T), intent(in) :: id
+   character(len=*), intent(in) :: key
+   integer, dimension(:), intent(in) :: val
+
+   integer(kind=HSIZE_T), dimension(1) :: dims
+   integer :: err
+   integer(kind=HID_T) :: sid, aid
+
+   dims(1) = size(val)
+   call h5screate_simple_f(1,dims,sid,err)
+   call h5dcreate_f(id,key,h5%pref_dtypei,sid,aid,err)
+   call h5dwrite_f(aid,h5%pref_dtypei,val,dims,err)
+   call h5dclose_f(aid,err)
+   call h5sclose_f(sid,err)
+
+ end subroutine hdf5_annotate_array_ip
+
+ subroutine hdf5_annotate_string(id,key,val)
+    integer(kind=HID_T), intent(in) :: id
+    character(len=*), intent(in) :: key,val
+
+    integer(kind=HSIZE_T),dimension(1) :: dims
+    integer :: err
+    integer(kind=HID_T) :: sid,aid,tid
+
+    call h5tcopy_f (H5T_NATIVE_CHARACTER,tid,err)
+    call h5tset_size_f(tid,int(len(trim(val)),kind=SIZE_T),err)
+    call h5screate_f(H5S_SCALAR_F,sid,err)
+    call h5acreate_f(id,key,tid,sid,aid,err)
+    dims(1)=1
+    call h5awrite_f(aid,tid,trim(val),dims,err)
+    call h5aclose_f(aid,err)
+    call h5sclose_f(sid,err)
+    call h5tclose_f(tid,err)
+
+ end subroutine hdf5_annotate_string
+
+ subroutine hdf5_annotate_array_string(id,key,val,n)
+    integer(HID_T), intent(in) :: id
+    character(len=*), intent(in) :: key
+    character(len=filename_size), dimension(*), intent(in) :: val
+    integer, intent(in) :: n 
+
+    integer :: err
+    integer(HID_T) :: sid, aid, tid
+    integer(HSIZE_T), dimension(1) :: dims
+    integer(SIZE_T) :: strlen
+
+    strlen = filename_size 
+    dims(1) = n
+
+    call h5tcopy_f(H5T_NATIVE_CHARACTER,tid,err)
+    call h5tset_size_f(tid,strlen,err)
+    call h5screate_simple_f(1,dims,sid,err)
+    call h5acreate_f(id,key,tid,sid,aid,err)
+    call h5awrite_f(aid,tid,val,dims,err)
+    call h5aclose_f(aid,err)
+    call h5sclose_f(sid,err)
+    call h5tclose_f(tid,err)
+
+ end subroutine hdf5_annotate_array_string
+
+ subroutine hdf5_annotate_ip(h5,id,key,val)
+    type(h5_file) :: h5 
+    integer(kind=HID_T), intent(in) :: id
+    character(len=*), intent(in) :: key
+    integer, intent(in) :: val
+        
+    integer(kind=HSIZE_T),dimension(1) :: dims
+    integer :: err
+    integer(kind=HID_T) :: sid,aid
+   
+    call h5screate_f(H5S_SCALAR_F,sid,err)
+    call h5dcreate_f(id, key, h5%pref_dtypei, sid, aid, err)
+    call h5dwrite_f(aid,h5%pref_dtypei,val,dims,err)
+    call h5dclose_f(aid,err)
+    call h5sclose_f(sid,err)
+
+ end subroutine hdf5_annotate_ip
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! MAIN LOOP
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ subroutine time_loop(mgrid,lgrid)
+    type(mpigrid), intent(inout) :: mgrid
+    type(locgrid), intent(inout) :: lgrid
+
+    real(kind=rp) :: wct_hydro,wcti_hydro,wctf_hydro, &
+    wctoi,wctof,wctg,step0,temp_max,temp_max_comm
+# 5702
+
+    integer :: ierr,iv,res_nr,iflush,max_T_met
+    integer :: i,j,k,ipr,iter
+    integer :: lx1,ux1,lx2,ux2,lx3,ux3
+    real(kind=rp) :: abar,eint,gm,gmm1,igmm1,p,rho,sound,sound2,T,ye,zbar,dp_drho,dp_deps
+    real(kind=rp) :: mu,inv_mu,inv_abar,T2,T3,T4,dRes_dT,tmp,Res0,Res_prad,cv,tmp1,tmp2
+
+# 5711
+
+
+# 5719
+
+
+# 5729
+
+
+# 5738
+
+
+# 5747
+
+
+    temp_max = rp0
+    temp_max_comm = rp0
+    
+    ierr = idummy
+    iv = idummy
+    res_nr = idummy
+    iflush = idummy
+
+    ipr = idummy
+    iter = idummy
+
+    abar = rp0
+    eint = rp0
+    gm = lgrid%gm
+    gmm1 = gm-rp1
+    igmm1 = rp1/gmm1
+    p = rp0
+    rho = rp0
+    sound = rp0
+    sound2 = rp0
+    T = rp0
+    ye = rp0
+    zbar = rp0
+    dp_drho = rp0
+    dp_deps = rp0
+
+    mu = lgrid%mu
+    inv_mu = rp1/mu
+    inv_abar = rp0
+    T2 = rp0
+    T3 = rp0
+    T4 = rp0
+    dRes_dT = rp0
+    tmp = rp0
+    Res0 = rp0
+    Res_prad = rp0
+    cv = rp0
+    tmp1 = rp0
+    tmp2 = rp0
+
+    lx1 = mgrid%i1(1)
+    ux1 = mgrid%i2(1)
+    lx2 = mgrid%i1(2)
+    ux2 = mgrid%i2(2)
+    lx3 = mgrid%i1(3)
+    ux3 = mgrid%i2(3)
+
+    do k=mgrid%i1(3),mgrid%i2(3)
+     do j=mgrid%i1(2),mgrid%i2(2)
+      do i=mgrid%i1(1),mgrid%i2(1)
+
+# 5807
+
+
+# 5821
+
+
+# 5829
+
+
+# 5838
+
+
+# 5847
+
+
+# 5856
+
+
+
+         lgrid%ivol(i,j,k) = rp1/tmp
+
+
+      end do
+     end do
+    end do
+
+# 5893
+
+
+# 5932
+
+
+# 5978
+
+
+# 6008
+
+ 
+    step0 = lgrid%step
+
+# 6232
+
+    
+# 6269
+
+
+    if(lgrid%step==0) then 
+
+     do k=lx3,ux3
+      do j=lx2,ux2
+       do i=lx1,ux1
+
+        rho = lgrid%prim(i_rho,i,j,k)
+
+# 6295
+
+# 6300
+
+# 6306
+
+
+
+        p = lgrid%prim(i_p,i,j,k)
+
+# 6373
+
+        T =  p/(CONST_RGAS*rho*inv_mu)
+        eint = p*igmm1
+
+
+        lgrid%eint(i,j,k) = eint
+        lgrid%temp(i,j,k) = T
+
+       end do
+      end do
+     end do 
+
+# 6387
+
+     call compute_hyperbolic_dt(mgrid,lgrid) 
+
+# 6392
+
+
+# 6396
+
+
+# 6400
+
+
+# 6409
+
+
+    else
+
+     do k=lx3,ux3
+      do j=lx2,ux2
+       do i=lx1,ux1
+
+        rho = lgrid%prim(i_rho,i,j,k)
+
+# 6435
+
+# 6440
+
+# 6446
+
+
+
+        p = lgrid%prim(i_p,i,j,k)
+
+# 6491
+
+        eint = p*igmm1
+
+
+        lgrid%eint(i,j,k) = eint
+   
+       end do
+      end do
+     end do 
+
+    endif
+
+# 6505
+
+
+# 6516
+
+
+    wct_hydro = rp0
+    call mpi_barrier(mgrid%comm_cart,ierr)
+    wcti_hydro = get_wtime(mgrid)
+    wctg = wcti_hydro-mgrid%wctgi
+
+    max_T_met = 0
+
+    do while((lgrid%time<tmax).and.(lgrid%step<stepmax).and.(wctg<wctmax).and.(max_T_met<1))
+
+# 6578
+
+
+# 6585
+
+
+# 6593
+
+
+# 6608
+
+
+# 6616
+
+
+# 6633
+
+
+       if(wctg>=lgrid%tnextrestart) then
+
+        call mpi_barrier(mgrid%comm_cart,ierr)
+        call write_restart(mgrid,lgrid)
+        lgrid%tnextrestart = lgrid%tnextrestart + dt_restart
+
+        if(mgrid%rankl==master_rank) then
+
+         open(iunit,file='restart_info.txt',status='unknown',action='write',form='formatted',position="append")
+         write(iunit,'(I10.10)') lgrid%step
+         close(iunit)
+
+        end if
+
+       end if
+
+       if(mgrid%rankl==master_rank) then
+
+         if(mod(lgrid%step,info_terminal_rate)==0) &
+         write(*,'("| step=",I8.8," | time=",E9.3," | dt=",E9.3,"| t/tmax=",E9.3," |")') &
+         lgrid%step,lgrid%time,lgrid%dt,lgrid%time/tmax
+
+       endif
+
+       call mpi_barrier(mgrid%comm_cart,ierr)
+       wcti_hydro = get_wtime(mgrid)
+
+       if((lgrid%time+lgrid%dt)>tmax) then
+         lgrid%dt = tmax - lgrid%time
+       endif
+
+# 6670
+
+
+# 6680
+
+
+
+       call hydro_step(mgrid,lgrid)
+
+
+# 6688
+
+
+# 6697
+
+
+# 6708
+
+
+       lgrid%time = lgrid%time + lgrid%dt
+
+# 6717
+
+
+       lgrid%step = lgrid%step + 1
+
+       call mpi_barrier(mgrid%comm_cart,ierr)
+       wctf_hydro = get_wtime(mgrid)
+       wct_hydro = wct_hydro + wctf_hydro - wcti_hydro
+       wctg = wctf_hydro-mgrid%wctgi
+
+# 6746
+
+
+    end do 
+
+    call mpi_barrier(mgrid%comm_cart,ierr)
+    wctoi = get_wtime(mgrid)
+    call write_output(mgrid,lgrid)
+    wctof = get_wtime(mgrid)
+
+# 6757
+
+
+# 6771
+
+
+# 6778
+
+
+# 6795
+
+
+# 6820
+
+    call mpi_barrier(mgrid%comm_cart,ierr)
+    call write_restart(mgrid,lgrid)
+
+    if(mgrid%rankl==master_rank) then
+
+      open(iunit,file='restart_info.txt',status='unknown',action='write',form='formatted',position="append")
+      write(iunit,'(I10.10)') lgrid%step
+      close(iunit)
+
+      write(*,'("| step=",I8.8," | time=",E9.3," | dt=",E9.3,"| t/tmax=",E9.3," |")') &
+      lgrid%step,lgrid%time,lgrid%dt,lgrid%time/tmax
+      write(*,'("wct/cell/cycle/core = ",E9.3," mus")') & 
+      wct_hydro/(lgrid%step-step0)/(mgrid%nx1l*mgrid%nx2l*mgrid%nx3l)*1.0e6_rp
+      write(*,'("updated cells/s = ",E9.3)') & 
+      (lgrid%step-step0)*(real(nx1,kind=rp)*real(nx2,kind=rp)*real(nx3,kind=rp))/wct_hydro 
+      write(*,'("total wct (no output) = ",E9.3," s")') wct_hydro
+      write(*,'("wct single output = ",E9.3," s")') wctof-wctoi
+
+    endif
+
+ end subroutine time_loop 
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! HYPERBOLIC SOLVER
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ subroutine hydro_step(mgrid,lgrid)
+    type(mpigrid), intent(inout) :: mgrid
+    type(locgrid), intent(inout) :: lgrid
+
+    integer :: iv,i,j,k,ierr,ir
+
+    integer :: lx1,ux1,lx2,ux2,lx3,ux3,irk,rk_stages,iter
+
+# 6857
+
+# 6860
+
+
+    real(kind=rp) :: a1rk,a2rk,a3rk
+
+    real(kind=rp) :: rho,vx1,vx2,vx3,p,T,inv_rho,rhovx1,rhovx2,rhovx3,rhoe,eint,tmp,tmp1,tmp2
+
+    real(kind=rp) :: qc,qm,qp,slope,slopef,slopeb,prod,am,ap,mn,mx,qmm,qpp,qmmm,qppp, &
+    gx1,gx2,gx3,rho_eq,p_eq,ye,abar,inv_abar,Res0,Res_prad,dRes_dT,x,y,z,r,inv_r,dp_drho,dp_deps, &
+    rmi,rpl,sin_theta_m,sin_theta_p,sin_theta,inv_r_sin_theta,r2,inv_r2,T2,T3,T4,zbar,sound,sound2,vn, &
+    cos_theta,Tminus,Tplus,gradT,Krad,Kint,Kminus,Kplus
+
+    real(kind=rp), dimension(1:nvars) :: qLbuf,qRbuf
+
+    real(kind=rp) :: inv_dl
+    real(kind=rp) :: gm,gmm1,igmm1,mu,inv_mu,snu
+    real(kind=rp), dimension(1:nvars) :: bc_fac
+
+# 6879
+
+
+# 6883
+
+
+# 6887
+
+
+# 6894
+
+
+# 6904
+
+
+    logical :: communicate_corners
+
+    ierr = idummy
+    ir = idummy
+
+    iter = idummy
+
+    p = rp0
+    T = rp0
+    tmp = rp0
+    tmp1 = rp0
+    tmp2 = rp0
+
+    qc = rp0
+    qm = rp0
+    qp = rp0
+    slope = rp0
+    slopef = rp0
+    slopeb = rp0
+    prod = rp0
+    am = rp0
+    ap = rp0
+    mn = rp0
+    mx = rp0
+    qmm = rp0
+    qpp = rp0
+    qppp = rp0
+    qmmm = rp0
+    gx1 = rp0
+    gx2 = rp0
+    gx3 = rp0
+    rho_eq = rp0
+    p_eq = rp0
+    ye = rp0
+    abar = rp0
+    inv_abar = rp0
+    Res0 = rp0
+    Res_prad = rp0
+    dRes_dT = rp0
+    x = rp0
+    y = rp0
+    z = rp0
+    r = rp0
+    inv_r = rp0
+    dp_drho = rp0
+    dp_deps = rp0
+    rmi = rp0
+    rpl = rp0
+    sin_theta_m = rp0
+    sin_theta_p = rp0
+    sin_theta = rp0
+    cos_theta = rp0
+    inv_r_sin_theta = rp0
+    r2 = rp0
+    inv_r2 = rp0
+    T2 = rp0
+    T3 = rp0
+    T4 = rp0
+    zbar = rp0 
+    sound = rp0
+    sound2 = rp0
+    vn = rp0
+    Tminus = rp0
+    Tplus = rp0
+    gradT = rp0
+    Krad = fthirds*CONST_RAD*CONST_C
+    Kint = rp0
+    Kminus = rp0
+    Kplus = rp0 
+
+    gm = lgrid%gm
+    gmm1 = gm-rp1
+    igmm1 = rp1/gmm1
+    mu = lgrid%mu
+    inv_mu = rp1/mu
+    snu = rp0
+
+# 6987
+
+
+# 6993
+
+
+# 7000
+
+
+    do ir=1,nvars
+     bc_fac(ir) = rp0
+    end do
+
+# 7016
+
+
+# 7030
+
+
+# 7048
+
+
+    lx1 = mgrid%i1(1)
+    ux1 = mgrid%i2(1)
+    lx2 = mgrid%i1(2)
+    ux2 = mgrid%i2(2)
+    lx3 = mgrid%i1(3)
+    ux3 = mgrid%i2(3)
+
+    do k=lx3,ux3
+     do j=lx2,ux2
+      do i=lx1,ux1
+
+       rho = lgrid%prim(i_rho,i,j,k)
+       vx1 = lgrid%prim(i_vx1,i,j,k)
+       vx2 = lgrid%prim(i_vx2,i,j,k)
+# 7066
+
+       vx3 = rp0
+
+
+       lgrid%state0(i_rho,i,j,k) = rho
+       lgrid%state0(i_rhovx1,i,j,k) = rho*vx1
+       lgrid%state0(i_rhovx2,i,j,k) = rho*vx2
+# 7075
+
+
+       eint = lgrid%eint(i,j,k)
+
+       rhoe = eint + rph*rho*(vx1*vx1+vx2*vx2+vx3*vx3)
+
+# 7090
+
+      
+# 7095
+
+       
+       lgrid%state0(i_rhoe,i,j,k) = rhoe
+
+# 7103
+
+
+      end do
+     end do
+    end do
+
+    do k=lx3,ux3
+     do j=lx2,ux2
+      do i=lx1,ux1
+       do iv=1,nvars
+        lgrid%state(iv,i,j,k) = lgrid%state0(iv,i,j,k)
+       end do
+      end do
+     end do
+    end do
+
+# 7147
+
+
+    do irk=1,rk_stages
+
+# 7168
+
+
+# 7172
+
+# 7175
+
+     communicate_corners = .true. 
+
+
+
+# 7182
+
+     call communicate_ndarray(mgrid,nvars,lx1,ux1,lx2,ux2,lx3,ux3,ngc,lgrid%prim,communicate_corners)
+# 7186
+
+
+# 7190
+
+
+# 7194
+
+
+
+
+# 7530
+
+
+# 7600
+
+
+# 7670
+
+
+# 7740
+
+
+# 7810
+
+
+# 7954
+
+
+
+
+
+
+     inv_dl = lgrid%inv_dx1
+     lgrid%ru%dir=1
+
+# 8071
+
+
+# 8136
+
+
+     do k=lx3,ux3
+      do j=lx2,ux2
+
+# 8181
+
+
+# 8259
+
+
+# 8323
+
+
+# 8471
+
+
+# 8486
+
+
+# 8495
+
+
+# 8729
+
+
+# 8878
+
+
+# 8908
+
+      
+# 8918
+
+
+# 8922
+
+       call riemann(lx1,ux1+1,lgrid%qLx1,lgrid%qRx1,lgrid%fx1,lgrid%ru)
+
+
+# 8951
+
+
+# 8959
+
+
+# 8966
+
+
+# 8979
+
+
+# 8997
+
+
+# 9015
+
+
+# 9034
+
+
+       do i=lx1,ux1
+
+# 9040
+
+
+# 9046
+
+
+# 9056
+
+        do iv=1,nvars
+         lgrid%res(iv,i,j,k) = (lgrid%fx1(iv,i+1)-lgrid%fx1(iv,i))*inv_dl
+        end do
+
+
+# 9073
+
+
+# 9086
+
+
+# 9100
+
+
+       end do
+
+      end do
+     end do
+
+     inv_dl = lgrid%inv_dx2
+     lgrid%ru%dir=2
+
+# 9218
+
+
+     do k=lx3,ux3
+      do i=lx1,ux1
+
+# 9263
+
+
+# 9341
+
+
+# 9405
+
+
+# 9621
+
+
+# 9713
+
+
+
+       do j=lx2,ux2+1
+        
+         vx1 = lgrid%qLx2(i_vx1,j)
+         vx2 = lgrid%qLx2(i_vx2,j)
+         lgrid%qLx2(i_vx1,j) = vx2
+         lgrid%qLx2(i_vx2,j) = -vx1
+        
+         vx1 = lgrid%qRx2(i_vx1,j)
+         vx2 = lgrid%qRx2(i_vx2,j)
+         lgrid%qRx2(i_vx1,j) = vx2
+         lgrid%qRx2(i_vx2,j) = -vx1
+
+       end do
+
+
+# 9747
+
+
+# 9764
+
+
+# 9773
+
+
+# 10053
+
+
+# 10083
+
+      
+# 10093
+
+
+# 10097
+
+       call riemann(lx2,ux2+1,lgrid%qLx2,lgrid%qRx2,lgrid%fx2,lgrid%ru)
+
+
+
+       do j=lx2,ux2+1
+        
+         vx1 = lgrid%fx2(i_rhovx1,j)
+         vx2 = lgrid%fx2(i_rhovx2,j)
+
+         lgrid%fx2(i_rhovx1,j) = -vx2
+         lgrid%fx2(i_rhovx2,j) = vx1
+
+       end do
+
+
+# 10144
+
+
+# 10154
+
+
+# 10163
+
+
+# 10178
+
+
+# 10188
+
+
+# 10198
+
+
+# 10216
+
+
+       do j=lx2,ux2
+
+# 10222
+
+
+# 10289
+
+
+        do iv=1,nvars
+         lgrid%res(iv,i,j,k) = lgrid%res(iv,i,j,k) + &
+         (lgrid%fx2(iv,j+1)-lgrid%fx2(iv,j))*inv_dl
+        end do
+
+
+
+       end do
+
+      end do
+     end do
+ 
+# 11364
+
+
+     a1rk = rk_coeff(irk,1)
+     a2rk = rk_coeff(irk,2)
+     a3rk = rk_coeff(irk,3)*lgrid%dt
+
+# 12489
+
+
+# 12525
+
+
+# 12560
+
+
+# 12604
+
+
+# 12644
+
+
+# 12676
+
+
+# 12804
+
+
+# 12836
+
+
+# 12878
+
+
+# 13498
+
+
+# 13516
+
+
+     do k=lx3,ux3
+      do j=lx2,ux2
+       do i=lx1,ux1
+
+        do iv=1,nvars
+         lgrid%state(iv,i,j,k) = &
+         a1rk*lgrid%state0(iv,i,j,k) + &
+         a2rk*lgrid%state(iv,i,j,k) + &
+         a3rk*lgrid%res(iv,i,j,k)
+        end do
+
+       end do
+      end do
+     end do
+
+     do k=lx3,ux3
+      do j=lx2,ux2
+       do i=lx1,ux1
+
+        rho = lgrid%state(i_rho,i,j,k)
+        rhovx1 = lgrid%state(i_rhovx1,i,j,k)
+        rhovx2 = lgrid%state(i_rhovx2,i,j,k)
+# 13542
+
+        rhovx3 = rp0
+
+        rhoe = lgrid%state(i_rhoe,i,j,k)
+
+        inv_rho = rp1/rho
+
+        eint = rhoe - rph*(rhovx1*rhovx1+rhovx2*rhovx2+rhovx3*rhovx3)*inv_rho
+
+# 13560
+
+
+# 13564
+
+
+        lgrid%prim(i_rho,i,j,k) = rho
+        lgrid%prim(i_vx1,i,j,k) = rhovx1*inv_rho
+        lgrid%prim(i_vx2,i,j,k) = rhovx2*inv_rho
+# 13571
+
+
+# 13590
+
+# 13595
+
+# 13602
+
+
+
+# 13670
+
+        p = gmm1*eint
+        lgrid%prim(i_p,i,j,k) = p
+        lgrid%temp(i,j,k) = p/(rho*CONST_RGAS*inv_mu)
+
+       
+        lgrid%eint(i,j,k) = eint
+
+# 13682
+
+
+       end do
+      end do
+     end do
+
+# 13697
+
+
+    end do
+
+ end subroutine hydro_step 
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! HYPERBOLIC TIME STEP (CFL CRITERION)
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ subroutine compute_hyperbolic_dt(mgrid,lgrid)
+   type(mpigrid), intent(in) :: mgrid
+   type(locgrid), intent(inout) :: lgrid
+
+   integer :: i,j,k
+   integer :: lx1,ux1,lx2,ux2,lx3,ux3
+   integer :: ierr
+
+   real(kind=rp) :: rho,vx1,vx2,vx3,p,c,sx1,sx2,sx3,smax(1),smax_comm(1),T,mu,inv_mu,inv_dl,T2,T3,T4
+
+   real(kind=rp) :: gm,gmm1,igmm1
+   real(kind=rp) :: ye,abar,inv_abar
+   real(kind=rp) :: dp_drho,dp_deps,ei
+   real(kind=rp) :: tmp,tmp1,tmp2,inv_r_sin_theta,zbar,rmi,rpl,cv,bx1,bx2,bx3
+   integer :: iter
+   real(kind=rp) :: ca2
+
+   ierr = idummy
+
+   sx3 = rp0
+   T = rp0
+   mu = lgrid%mu
+   inv_mu = rp1/mu
+   inv_dl = rp0
+   T2 = rp0
+   T3 = rp0
+   T4 = rp0
+
+   gm = lgrid%gm
+   gmm1 = gm-rp1
+   igmm1 = rp1/gmm1
+
+   ye = rp0
+   abar = rp0
+   inv_abar = rp0
+
+   dp_drho = rp0
+   dp_deps = rp0
+   ei = rp0
+
+   tmp = rp0
+   tmp1 = rp0
+   tmp2 = rp0
+   inv_r_sin_theta = rp0
+   zbar = rp0
+   rmi = rp0
+   rpl = rp0
+   cv = rp0
+
+   bx1 = rp0
+   bx2 = rp0
+   bx3 = rp0
+
+   iter = idummy
+   
+   ca2 = rp0
+   smax(1) = rp0
+
+   lx1 = mgrid%i1(1)
+   ux1 = mgrid%i2(1)
+   lx2 = mgrid%i1(2)
+   ux2 = mgrid%i2(2)
+   lx3 = mgrid%i1(3)
+   ux3 = mgrid%i2(3)
+
+   do k=lx3,ux3
+    do j=lx2,ux2
+     do i=lx1,ux1
+
+# 13778
+
+
+       rho = lgrid%prim(i_rho,i,j,k)
+       vx1 = lgrid%prim(i_vx1,i,j,k)
+       vx2 = lgrid%prim(i_vx2,i,j,k)
+# 13785
+
+       vx3 = rp0
+
+
+# 13817
+
+
+       p = lgrid%prim(i_p,i,j,k)
+
+# 13854
+
+
+       c = sqrt(gm*p/rho)
+
+
+
+# 13870
+
+
+       inv_dl = lgrid%inv_dx1
+
+# 13876
+
+
+# 13882
+
+
+# 13889
+
+
+       sx1 = (abs(vx1) + c)*inv_dl
+
+       inv_dl = lgrid%inv_dx2
+
+# 13897
+
+
+# 13901
+
+
+# 13907
+
+
+# 13913
+
+
+       sx2 = (abs(vx2) + c)*inv_dl
+
+# 13938
+
+
+       smax(1) = max(smax(1), &
+# 13943
+
+       sx1+sx2)
+
+# 13948
+
+
+     end do
+    end do 
+   end do
+   
+   call mpi_allreduce(smax, smax_comm, 1, MPI_RP , MPI_MAX, mgrid%comm_cart, ierr)
+
+   lgrid%smax = smax_comm(1) 
+
+   lgrid%dt = cfl/smax_comm(1)
+
+ end subroutine compute_hyperbolic_dt
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! RIEMANN SOLVERS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+# 15028
+
+
+# 16263
+
+
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! GRID GEOMETRIES
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+# 16372
+
+
+
+# 16466
+
+ 
+# 16552
+
+ 
+# 16670
+
+
+# 16824
+
+
+
+# 17254
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! GRAVITY SOLVER
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+# 19390
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! RADIATIVE DIFFUSION (SUPER TIME STEPPER)
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# 19800
+
+
+# 21070
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! NEUTRINO COOLING
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# 22413
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! NUCLEAR NETWORK
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# 23068
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! HELMHOLTZ EOS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# 25399
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! PIG EOS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# 26733
+
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! MPI WALL CLOCK TIME
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ function get_wtime(mgrid) result(wct)
+   type(mpigrid),intent(inout) :: mgrid
+   real(kind=rp) :: wct, tmp(1)
+   integer :: ierr
+
+   tmp(1) = real(mpi_wtime(),kind=rp)
+   call mpi_bcast(tmp,1,MPI_RP,master_rank,mgrid%comm_cart,ierr)
+   wct = tmp(1)
+
+ end function get_wtime
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+! USEFUL FUNCTIONS
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 
+ character(len=20) function str(k)
+   integer, intent(in) :: k
+   write (str, *) k
+   str = adjustl(str)
+ end function str
+
+end module source
