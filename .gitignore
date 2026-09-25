@@ -11,5 +11,5 @@ data/jina_reaclib_default
 run.app
 restart*
 obj
-
+*.i90
 AGENTS.md
