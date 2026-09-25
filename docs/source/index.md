@@ -18,6 +18,7 @@ modules/contributing.md
 modules/docker_workflow.md
 modules/build_and_run.md
 modules/options_reference.md
+modules/phleos.md
 modules/generate_pig_table.md
 modules/overview.md
 modules/phloutput.md
